@@ -1,36 +1,59 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <title>我的博客</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技术博客 - 首页</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>技术博客</h1>
 <nav>
-    <a href="index.html">首页</a> |
+    <a href="index.html">首页</a>
     <a href="about.html">关于</a>
 </nav>
 
-<h2>文章列表</h2>
-<div id="posts"></div>
+<h1>技术博客</h1>
+<h2>最新文章</h2>
+
+<div class="posts-container" id="posts"></div>
+
+<footer>
+    © 2025 技术博客 | 基于 Supabase + Netlify 构建
+</footer>
 
 <script type="module">
     import { supabase } from './supabase.js'
 
-    // 加载文章列表
+    // 从数据库加载文章（关联分类）
     async function loadPosts() {
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from('posts')
             .select(`
           *,
-          categories:category_id (name)
-        `) // 关联查询分类名称
+          categories:category_id (
+            name
+          )
+        `)
+            .order('created_at', { ascending: false }) // 按发布时间倒序
 
-        const postsDiv = document.getElementById('posts')
+        if (error) {
+            console.error('加载文章失败：', error)
+            return
+        }
+
+        const postsContainer = document.getElementById('posts')
+        if (data.length === 0) {
+            postsContainer.innerHTML = '<p>暂无文章</p>'
+            return
+        }
+
+        // 渲染文章列表（使用数据库数据）
         data.forEach(post => {
-            postsDiv.innerHTML += `
-          <div>
+            postsContainer.innerHTML += `
+          <div class="post-card">
+            <span class="category">${post.categories?.name || '未分类'}</span>
             <h3><a href="post.html?id=${post.id}">${post.title}</a></h3>
-            <p>分类：${post.categories.name}</p>
+            <p class="post-meta">发布时间：${new Date(post.created_at).toLocaleString()}</p>
           </div>
         `
         })

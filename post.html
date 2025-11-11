@@ -1,79 +1,135 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <title>文章详情</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章详情 - 技术博客</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <nav>
-    <a href="index.html">首页</a> |
+    <a href="index.html">首页</a>
     <a href="about.html">关于</a>
 </nav>
 
-<div id="post"></div>
+<div class="post-detail" id="post"></div>
 
-<h3>评论区</h3>
-<div id="comments"></div>
+<div class="comments-section">
+    <h2>评论区</h2>
+    <div id="comments"></div>
 
-<!-- 评论提交表单 -->
-<form id="commentForm">
-    <input type="text" name="author" placeholder="你的名字" required>
-    <textarea name="content" placeholder="评论内容" required></textarea>
-    <button type="submit">提交</button>
-</form>
+    <form class="comment-form" id="commentForm">
+        <input type="text" name="author" placeholder="你的名字" required>
+        <textarea name="content" placeholder="分享你的想法..." required></textarea>
+        <button type="submit">提交评论</button>
+    </form>
+</div>
+
+<footer>
+    © 2025 技术博客 | 基于 Supabase + Netlify 构建
+</footer>
 
 <script type="module">
     import { supabase } from './supabase.js'
 
-    // 获取URL中的文章ID（如 post.html?id=1）
+    // 获取URL中的文章ID
     const postId = new URLSearchParams(window.location.search).get('id')
+    if (!postId) {
+        document.body.innerHTML = '<h1>文章不存在</h1><p><a href="index.html">返回首页</a></p>'
+    }
 
-    // 加载文章详情
+    // 加载文章详情（从数据库获取）
     async function loadPost() {
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from('posts')
-            .select('*')
+            .select(`
+          *,
+          categories:category_id (name)
+        `)
             .eq('id', postId)
             .single()
 
+        if (error) {
+            console.error('加载文章失败：', error)
+            document.getElementById('post').innerHTML = '<p>文章加载失败</p>'
+            return
+        }
+
         document.getElementById('post').innerHTML = `
         <h1>${data.title}</h1>
-        <p>${data.content}</p>
+        <div class="post-meta">
+          分类：${data.categories?.name || '未分类'} |
+          发布时间：${new Date(data.created_at).toLocaleString()}
+        </div>
+        <div class="post-content">
+          <p>${data.content}</p>
+        </div>
       `
     }
 
-    // 加载评论
+    // 加载评论（从数据库获取）
     async function loadComments() {
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from('comments')
             .select('*')
             .eq('post_id', postId)
+            .order('created_at', { ascending: true })
+
+        if (error) {
+            console.error('加载评论失败：', error)
+            return
+        }
 
         const commentsDiv = document.getElementById('comments')
+        commentsDiv.innerHTML = '' // 清空现有评论
+
+        if (data.length === 0) {
+            commentsDiv.innerHTML = '<p>暂无评论，快来抢沙发～</p>'
+            return
+        }
+
+        // 渲染评论列表（使用数据库数据）
         data.forEach(comment => {
             commentsDiv.innerHTML += `
-          <div>
-            <p><strong>${comment.author}</strong>：${comment.content}</p>
+          <div class="comment">
+            <span class="comment-author">${comment.author}</span>
+            <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
+            <p>${comment.content}</p>
           </div>
         `
         })
     }
 
-    // 提交评论
+    // 提交评论到数据库
     document.getElementById('commentForm').addEventListener('submit', async (e) => {
         e.preventDefault()
-        const author = e.target.author.value
-        const content = e.target.content.value
+        const author = e.target.author.value.trim()
+        const content = e.target.content.value.trim()
 
-        await supabase
+        if (!author || !content) return
+
+        // 插入评论到数据库
+        const { error } = await supabase
             .from('comments')
-            .insert([{ post_id: postId, author, content }])
+            .insert([{
+                post_id: postId,
+                author,
+                content,
+                created_at: new Date()
+            }])
 
-        // 重新加载评论
-        loadComments()
+        if (error) {
+            console.error('提交评论失败：', error)
+            alert('评论提交失败，请重试')
+            return
+        }
+
+        // 重置表单并重新加载评论
         e.target.reset()
+        loadComments()
     })
 
-    // 初始化
+    // 初始化加载
     loadPost()
     loadComments()
 </script>

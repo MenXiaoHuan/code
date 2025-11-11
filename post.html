@@ -108,14 +108,13 @@
 
         if (!author || !content) return
 
-        // 插入评论到数据库
+        // 插入评论到数据库（移除created_at的显式赋值）
         const { error } = await supabase
             .from('comments')
             .insert([{
                 post_id: postId,
                 author,
-                content,
-                created_at: new Date()
+                content
             }])
 
         if (error) {

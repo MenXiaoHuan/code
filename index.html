@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>我的博客</title>
+</head>
+<body>
+<h1>技术博客</h1>
+<nav>
+    <a href="index.html">首页</a> |
+    <a href="about.html">关于</a>
+</nav>
+
+<h2>文章列表</h2>
+<div id="posts"></div>
+
+<script type="module">
+    import { supabase } from './supabase.js'
+
+    // 加载文章列表
+    async function loadPosts() {
+        const { data } = await supabase
+            .from('posts')
+            .select(`
+          *,
+          categories:category_id (name)
+        `) // 关联查询分类名称
+
+        const postsDiv = document.getElementById('posts')
+        data.forEach(post => {
+            postsDiv.innerHTML += `
+          <div>
+            <h3><a href="post.html?id=${post.id}">${post.title}</a></h3>
+            <p>分类：${post.categories.name}</p>
+          </div>
+        `
+        })
+    }
+
+    loadPosts()
+</script>
+</body>
+</html>

@@ -8,21 +8,149 @@
 </head>
 <body>
 <nav>
-    <a href="index.html">首页</a>
-    <a href="about.html">关于</a>
+    <a href="index.html" class="logo">TechBlog</a>
+    <div class="nav-links">
+        <a href="index.html">首页</a>
+        <a href="publish.html">发布文章</a>
+        <a href="about.html">关于</a>
+    </div>
 </nav>
 
 <div class="about-container">
-    <h1>关于这个博客</h1>
-    <p>这是一个基于 <strong>Supabase</strong> 和 <strong>Netlify</strong> 构建的技术博客平台。</p>
-    <p>功能特点：</p>
-    <ul>
-        <li>展示技术文章及分类</li>
-        <li>支持用户评论互动</li>
-        <li>所有数据实时存储在 Supabase 数据库</li>
-    </ul>
-    <p>技术栈：HTML + JavaScript + Supabase + Netlify</p>
+    <div class="content">
+        <h1>关于这个博客</h1>
+        
+        <div class="about-intro">
+            <p>这是一个基于 <strong>Supabase</strong> 和 <strong>Netlify</strong> 构建的现代化技术博客平台。我们致力于为技术爱好者提供一个分享知识、交流想法的空间。</p>
+        </div>
+        
+        <div class="features-section">
+            <h2>功能特点</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📝</div>
+                    <h3>文章展示</h3>
+                    <p>清晰分类的技术文章，方便您快速找到感兴趣的内容</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💬</div>
+                    <h3>互动评论</h3>
+                    <p>支持用户评论功能，促进技术交流与讨论</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💾</div>
+                    <h3>实时存储</h3>
+                    <p>所有数据实时存储在 Supabase 数据库中，安全可靠</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tech-stack">
+            <h2>技术栈</h2>
+            <div class="tech-badges">
+                <span class="tech-badge">HTML5</span>
+                <span class="tech-badge">JavaScript</span>
+                <span class="tech-badge">Supabase</span>
+                <span class="tech-badge">Netlify</span>
+            </div>
+        </div>
+        
+        <div class="about-footer">
+            <p>感谢您访问我们的技术博客！如果您有任何问题或建议，欢迎随时联系我们。</p>
+        </div>
+    </div>
 </div>
+
+<style>
+    /* 关于页面特定样式 */
+    .about-intro {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(96, 165, 250, 0.05) 100%);
+        border-radius: var(--radius-lg);
+        border-left: 4px solid var(--primary);
+    }
+    
+    .features-section {
+        margin: 3rem 0;
+    }
+    
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+    
+    .feature-card {
+        background: var(--surface);
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        text-align: center;
+        transition: all var(--transition-normal);
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary-light);
+    }
+    
+    .feature-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .feature-card h3 {
+        margin-top: 0;
+        font-size: 1.25rem;
+    }
+    
+    .tech-stack {
+        margin: 3rem 0;
+    }
+    
+    .tech-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+    
+    .tech-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+        color: white;
+        border-radius: var(--radius-full, 9999px);
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: transform var(--transition-fast);
+    }
+    
+    .tech-badge:hover {
+        transform: scale(1.05);
+    }
+    
+    .about-footer {
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--border);
+        text-align: center;
+        color: var(--text-secondary);
+    }
+    
+    @media (max-width: 768px) {
+        .features-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .tech-badges {
+            justify-content: center;
+        }
+    }
+</style>
 
 <footer>
     © 2025 技术博客 | 基于 Supabase + Netlify 构建

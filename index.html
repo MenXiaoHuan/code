@@ -8,15 +8,23 @@
 </head>
 <body>
 <nav>
-    <a href="index.html">首页</a>
-    <a href="publish.html">发布文章</a>
-    <a href="about.html">关于</a>
+    <a href="index.html" class="logo">TechBlog</a>
+    <div class="nav-links">
+        <a href="index.html">首页</a>
+        <a href="publish.html">发布文章</a>
+        <a href="about.html">关于</a>
+    </div>
 </nav>
 
 <h1>技术博客</h1>
 <h2>最新文章</h2>
 
-<div class="posts-container" id="posts"></div>
+<div class="posts-container" id="posts">
+    <div style="text-align: center; padding: 2rem; color: var(--text-tertiary)">
+        <div class="loading"></div>
+        <p style="margin-top: 1rem;">加载中...</p>
+    </div>
+</div>
 
 <footer>
     © 2025 技术博客 | 基于 Supabase + Netlify 构建
@@ -37,30 +45,53 @@
         `)
             .order('created_at', { ascending: false }) // 按发布时间倒序
 
+        const postsContainer = document.getElementById('posts')
+        
         if (error) {
             console.error('加载文章失败：', error)
+            postsContainer.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--text-tertiary)">
+                <p style="color: var(--error)">加载失败，请稍后重试</p>
+                <button onclick="loadPosts()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: var(--primary); color: white; border: none; border-radius: var(--radius-md); cursor: pointer;">重新加载</button>
+            </div>`
             return
         }
 
-        const postsContainer = document.getElementById('posts')
         if (data.length === 0) {
-            postsContainer.innerHTML = '<p>暂无文章</p>'
+            postsContainer.innerHTML = '<p style="text-align: center; padding: 3rem; color: var(--text-secondary); font-size: 1.1rem;">暂无文章，快来发布第一篇吧！</p>'
             return
         }
 
+        // 清空加载状态
+        postsContainer.innerHTML = ''
+        
         // 渲染文章列表（使用数据库数据）
         data.forEach(post => {
-            postsContainer.innerHTML += `
-          <div class="post-card">
-            <span class="category">${post.categories?.name || '未分类'}</span>
-            <h3><a href="post.html?id=${post.id}">${post.title}</a></h3>
-            <p class="post-meta">发布时间：${new Date(post.created_at).toLocaleString()}</p>
-          </div>
-        `
+            // 为每个卡片添加延迟动画效果
+            const postCard = document.createElement('div')
+            postCard.className = 'post-card'
+            postCard.style.opacity = '0'
+            postCard.innerHTML = `
+                <span class="category">${post.categories?.name || '未分类'}</span>
+                <h3><a href="post.html?id=${post.id}">${post.title}</a></h3>
+                <p class="post-meta">${new Date(post.created_at).toLocaleDateString('zh-CN', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                })}</p>
+            `
+            postsContainer.appendChild(postCard)
+            
+            // 添加渐入动画
+            setTimeout(() => {
+                postCard.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out'
+                postCard.style.opacity = '1'
+                postCard.style.transform = 'translateY(0)'
+            }, 100)
         })
     }
 
-    loadPosts()
+    // 页面加载后执行
+    document.addEventListener('DOMContentLoaded', loadPosts)
 </script>
 </body>
 </html>

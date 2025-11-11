@@ -8,33 +8,56 @@
 </head>
 <body>
 <nav>
-    <a href="index.html">首页</a>
-    <a href="publish.html">发布文章</a>
-    <a href="about.html">关于</a>
+    <a href="index.html" class="logo">TechBlog</a>
+    <div class="nav-links">
+        <a href="index.html">首页</a>
+        <a href="publish.html">发布文章</a>
+        <a href="about.html">关于</a>
+    </div>
 </nav>
 
 <div class="publish-container">
     <h1>发布技术文章</h1>
+    
+    <!-- 成功提示区域 -->
+    <div id="successMessage" style="display: none; margin-bottom: 1.5rem; padding: 1rem; background-color: rgba(16, 185, 129, 0.1); border-radius: var(--radius-lg); color: var(--success);">
+        <strong>发布成功！</strong> 文章已成功发布。
+    </div>
+    
+    <!-- 错误提示区域 -->
+    <div id="errorMessage" style="display: none; margin-bottom: 1.5rem; padding: 1rem; background-color: rgba(239, 68, 68, 0.1); border-radius: var(--radius-lg); color: var(--error);">
+        <strong>发布失败：</strong> <span id="errorText"></span>
+    </div>
+    
     <form id="publishForm" class="comment-form">
-        <div>
-            <label for="title">文章标题</label>
+        <div class="form-group">
+            <label for="title">文章标题 <span style="color: var(--error);">*</span></label>
             <input type="text" id="title" name="title" placeholder="请输入文章标题" required>
+            <div class="char-count" id="titleCount" style="text-align: right; font-size: 0.875rem; color: var(--text-tertiary); margin-top: 0.25rem;">0/100</div>
         </div>
 
-        <div>
-            <label for="category">文章分类</label>
+        <div class="form-group">
+            <label for="category">文章分类 <span style="color: var(--error);">*</span></label>
             <select id="category" name="category_id" required>
                 <option value="">选择分类</option>
-                <!-- 分类会从数据库动态加载 -->
+                <div id="categoryLoading" style="padding: 1rem; text-align: center; color: var(--text-tertiary);">
+                    <div class="loading"></div>
+                </div>
             </select>
         </div>
 
-        <div>
-            <label for="content">文章内容</label>
-            <textarea id="content" name="content" placeholder="请输入文章内容（支持换行）" rows="10" required></textarea>
+        <div class="form-group">
+            <label for="content">文章内容 <span style="color: var(--error);">*</span></label>
+            <textarea id="content" name="content" placeholder="请输入文章内容（支持换行）" rows="12" required></textarea>
+            <div class="char-count" id="contentCount" style="text-align: right; font-size: 0.875rem; color: var(--text-tertiary); margin-top: 0.25rem;">0/2000</div>
         </div>
 
-        <button type="submit">发布文章</button>
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <button type="submit" id="publishButton" class="btn-primary">发布文章</button>
+            <a href="index.html" style="display: flex; align-items: center; justify-content: center; padding: 1rem 2rem; background-color: var(--surface); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text-secondary); text-decoration: none; transition: all var(--transition-normal);">
+                取消
+            </a>
+        </div>
     </form>
 </div>
 
@@ -45,61 +68,215 @@
 <script type="module">
     import { supabase } from './supabase.js'
 
+    // DOM 元素
+    const titleInput = document.getElementById('title')
+    const contentInput = document.getElementById('content')
+    const categorySelect = document.getElementById('category')
+    const publishButton = document.getElementById('publishButton')
+    const titleCount = document.getElementById('titleCount')
+    const contentCount = document.getElementById('contentCount')
+    const successMessage = document.getElementById('successMessage')
+    const errorMessage = document.getElementById('errorMessage')
+    const errorText = document.getElementById('errorText')
+    const categoryLoading = document.getElementById('categoryLoading')
+
+    // 字符计数功能
+    function setupCharCount() {
+        // 标题字符计数
+        titleInput.addEventListener('input', () => {
+            const count = titleInput.value.length
+            titleCount.textContent = `${count}/100`
+            
+            // 超出字符限制时的视觉反馈
+            if (count > 100) {
+                titleCount.style.color = '#ef4444'
+                titleInput.style.borderColor = '#ef4444'
+            } else {
+                titleCount.style.color = '#64748b'
+                titleInput.style.borderColor = ''
+            }
+        })
+
+        // 内容字符计数
+        contentInput.addEventListener('input', () => {
+            const count = contentInput.value.length
+            contentCount.textContent = `${count}/2000`
+            
+            // 超出字符限制时的视觉反馈
+            if (count > 2000) {
+                contentCount.style.color = '#ef4444'
+                contentInput.style.borderColor = '#ef4444'
+            } else {
+                contentCount.style.color = '#64748b'
+                contentInput.style.borderColor = ''
+            }
+        })
+    }
+
     // 加载分类列表（从数据库获取）
     async function loadCategories() {
-        const { data, error } = await supabase
-            .from('categories')
-            .select('*')
-            .order('name')
+        try {
+            categoryLoading.style.display = 'block'
+            
+            const { data, error } = await supabase
+                .from('categories')
+                .select('*')
+                .order('name')
 
-        if (error) {
-            console.error('加载分类失败：', error)
-            return
+            if (error) {
+                console.error('加载分类失败：', error)
+                showError('加载分类失败，请刷新页面重试')
+                return
+            }
+
+            // 清空加载提示并添加分类选项
+            categorySelect.innerHTML = '<option value="">选择分类</option>'
+            
+            if (data.length === 0) {
+                // 如果没有分类，显示提示
+                const emptyOption = document.createElement('option')
+                emptyOption.value = ''
+                emptyOption.disabled = true
+                emptyOption.textContent = '暂无可用分类'
+                categorySelect.appendChild(emptyOption)
+            } else {
+                // 添加分类选项
+                data.forEach(category => {
+                    const option = document.createElement('option')
+                    option.value = category.id
+                    option.textContent = category.name
+                    categorySelect.appendChild(option)
+                })
+            }
+        } catch (err) {
+            console.error('加载分类时发生错误：', err)
+            showError('加载分类时发生错误，请刷新页面重试')
+        } finally {
+            categoryLoading.style.display = 'none'
         }
+    }
 
-        const categorySelect = document.getElementById('category')
-        data.forEach(category => {
-            categorySelect.innerHTML += `
-          <option value="${category.id}">${category.name}</option>
-        `
-        })
+    // 显示错误消息
+    function showError(message) {
+        errorText.textContent = message
+        errorMessage.style.display = 'block'
+        successMessage.style.display = 'none'
+        
+        // 自动隐藏错误消息
+        setTimeout(() => {
+            errorMessage.style.opacity = '0'
+            setTimeout(() => {
+                errorMessage.style.display = 'none'
+                errorMessage.style.opacity = '1'
+            }, 300)
+        }, 5000)
+    }
+
+    // 显示成功消息
+    function showSuccess() {
+        successMessage.style.display = 'block'
+        errorMessage.style.display = 'none'
+        
+        // 成功消息添加动画效果
+        successMessage.style.opacity = '0'
+        successMessage.style.transform = 'translateY(-10px)'
+        successMessage.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out'
+        
+        setTimeout(() => {
+            successMessage.style.opacity = '1'
+            successMessage.style.transform = 'translateY(0)'
+        }, 10)
     }
 
     // 提交文章到数据库
     document.getElementById('publishForm').addEventListener('submit', async (e) => {
         e.preventDefault()
-        const title = e.target.title.value.trim()
-        const categoryId = e.target.category_id.value
-        const content = e.target.content.value.trim()
+        
+        // 获取表单数据
+        const title = titleInput.value.trim()
+        const categoryId = categorySelect.value
+        const content = contentInput.value.trim()
 
-        if (!title || !categoryId || !content) {
-            alert('请完善文章信息')
+        // 表单验证
+        if (!title) {
+            showError('请输入文章标题')
+            titleInput.focus()
+            return
+        }
+        
+        if (title.length > 100) {
+            showError('文章标题不能超过100个字符')
+            titleInput.focus()
             return
         }
 
-        // 插入文章到数据库
-        const { error } = await supabase
-            .from('posts')
-            .insert([{
-                title,
-                category_id: categoryId,
-                content,
-                created_at: new Date()
-            }])
-
-        if (error) {
-            console.error('发布失败：', error)
-            alert('发布失败，请重试')
+        if (!categoryId) {
+            showError('请选择文章分类')
+            categorySelect.focus()
             return
         }
 
-        // 发布成功后跳转到首页
-        alert('发布成功！')
-        window.location.href = 'index.html'
+        if (!content) {
+            showError('请输入文章内容')
+            contentInput.focus()
+            return
+        }
+        
+        if (content.length > 2000) {
+            showError('文章内容不能超过2000个字符')
+            contentInput.focus()
+            return
+        }
+
+        // 禁用提交按钮防止重复提交
+        publishButton.disabled = true
+        publishButton.innerHTML = '<div class="loading" style="width: 16px; height: 16px;"></div> 发布中...'
+
+        try {
+            // 插入文章到数据库
+            const { error } = await supabase
+                .from('posts')
+                .insert([{
+                    title,
+                    category_id: categoryId,
+                    content,
+                    created_at: new Date()
+                }])
+
+            if (error) {
+                console.error('发布失败：', error)
+                showError('发布失败，请稍后重试')
+                return
+            }
+
+            // 显示成功消息
+            showSuccess()
+            
+            // 清空表单
+            document.getElementById('publishForm').reset()
+            titleCount.textContent = '0/100'
+            contentCount.textContent = '0/2000'
+            
+            // 3秒后跳转到首页
+            setTimeout(() => {
+                window.location.href = 'index.html'
+            }, 3000)
+            
+        } catch (err) {
+            console.error('发布过程中发生错误：', err)
+            showError('发布过程中发生错误，请稍后重试')
+        } finally {
+            // 恢复按钮状态
+            publishButton.disabled = false
+            publishButton.innerHTML = '发布文章'
+        }
     })
 
-    // 初始化加载分类
-    loadCategories()
+    // 页面加载后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        loadCategories()
+        setupCharCount()
+    })
 </script>
 </body>
 </html>

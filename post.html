@@ -8,20 +8,34 @@
 </head>
 <body>
 <nav>
-    <a href="index.html">首页</a>
-    <a href="about.html">关于</a>
+    <a href="index.html" class="logo">TechBlog</a>
+    <div class="nav-links">
+        <a href="index.html">首页</a>
+        <a href="publish.html">发布文章</a>
+        <a href="about.html">关于</a>
+    </div>
 </nav>
 
-<div class="post-detail" id="post"></div>
+<div class="post-detail" id="post">
+    <div style="text-align: center; padding: 3rem; color: var(--text-tertiary)">
+        <div class="loading"></div>
+        <p style="margin-top: 1rem;">加载文章中...</p>
+    </div>
+</div>
 
 <div class="comments-section">
     <h2>评论区</h2>
-    <div id="comments"></div>
+    <div id="comments">
+        <div style="text-align: center; padding: 2rem; color: var(--text-tertiary)">
+            <div class="loading"></div>
+            <p style="margin-top: 1rem;">加载评论中...</p>
+        </div>
+    </div>
 
     <form class="comment-form" id="commentForm">
         <input type="text" name="author" placeholder="你的名字" required>
         <textarea name="content" placeholder="分享你的想法..." required></textarea>
-        <button type="submit">提交评论</button>
+        <button type="submit" id="submitComment">提交评论</button>
     </form>
 </div>
 
@@ -35,7 +49,18 @@
     // 获取URL中的文章ID
     const postId = new URLSearchParams(window.location.search).get('id')
     if (!postId) {
-        document.body.innerHTML = '<h1>文章不存在</h1><p><a href="index.html">返回首页</a></p>'
+        document.body.innerHTML = `
+            <div style="max-width: 800px; margin: 2rem auto; padding: 2rem; text-align: center;">
+                <h1>文章不存在</h1>
+                <p style="margin: 1.5rem 0;">抱歉，您访问的文章不存在或已被删除</p>
+                <a href="index.html" style="display: inline-block; padding: 0.75rem 1.5rem; background: var(--primary); color: white; text-decoration: none; border-radius: var(--radius-md); transition: background var(--transition-fast);">返回首页</a>
+            </div>
+        `
+    }
+
+    // 获取作者名字首字母作为头像
+    function getInitials(name) {
+        return name ? name.charAt(0).toUpperCase() : '?'
     }
 
     // 加载文章详情（从数据库获取）
@@ -49,22 +74,44 @@
             .eq('id', postId)
             .single()
 
+        const postContainer = document.getElementById('post')
+        
         if (error) {
             console.error('加载文章失败：', error)
-            document.getElementById('post').innerHTML = '<p>文章加载失败</p>'
+            postContainer.innerHTML = `
+                <div style="text-align: center; padding: 3rem;">
+                    <p style="color: var(--error); font-size: 1.1rem;">文章加载失败</p>
+                    <a href="index.html" style="display: inline-block; margin-top: 1rem; padding: 0.75rem 1.5rem; background: var(--primary); color: white; text-decoration: none; border-radius: var(--radius-md); transition: background var(--transition-fast);">返回首页</a>
+                </div>
+            `
             return
         }
 
-        document.getElementById('post').innerHTML = `
-        <h1>${data.title}</h1>
-        <div class="post-meta">
-          分类：${data.categories?.name || '未分类'} |
-          发布时间：${new Date(data.created_at).toLocaleString()}
-        </div>
-        <div class="post-content">
-          <p>${data.content}</p>
-        </div>
-      `
+        // 更新页面标题
+        document.title = `${data.title} - 技术博客`
+
+        // 渲染文章内容
+        postContainer.innerHTML = `
+            <h1>${data.title}</h1>
+            <div class="post-meta">
+                <span class="category">${data.categories?.name || '未分类'}</span>
+                <span>📅 ${new Date(data.created_at).toLocaleDateString('zh-CN', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })}</span>
+            </div>
+            <div class="post-content">
+                <p>${data.content}</p>
+            </div>
+            <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                <a href="index.html" style="display: inline-flex; align-items: center; color: var(--primary); text-decoration: none; transition: color var(--transition-fast);">
+                    ← 返回文章列表
+                </a>
+            </div>
+        `
     }
 
     // 加载评论（从数据库获取）
@@ -75,28 +122,52 @@
             .eq('post_id', postId)
             .order('created_at', { ascending: true })
 
+        const commentsDiv = document.getElementById('comments')
+        
         if (error) {
             console.error('加载评论失败：', error)
+            commentsDiv.innerHTML = `<p style="text-align: center; padding: 2rem; color: var(--error);">评论加载失败</p>`
             return
         }
 
-        const commentsDiv = document.getElementById('comments')
         commentsDiv.innerHTML = '' // 清空现有评论
 
         if (data.length === 0) {
-            commentsDiv.innerHTML = '<p>暂无评论，快来抢沙发～</p>'
+            commentsDiv.innerHTML = '<p style="text-align: center; padding: 2rem; color: var(--text-secondary);">暂无评论，快来抢沙发～</p>'
             return
         }
 
-        // 渲染评论列表（使用数据库数据）
-        data.forEach(comment => {
-            commentsDiv.innerHTML += `
-          <div class="comment">
-            <span class="comment-author">${comment.author}</span>
-            <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
-            <p>${comment.content}</p>
-          </div>
-        `
+        // 渲染评论列表
+        data.forEach((comment, index) => {
+            // 创建评论元素
+            const commentEl = document.createElement('div')
+            commentEl.className = 'comment'
+            commentEl.style.opacity = '0'
+            commentEl.style.transform = 'translateY(10px)'
+            commentEl.innerHTML = `
+                <div class="comment-header">
+                    <div class="comment-avatar">${getInitials(comment.author)}</div>
+                    <div>
+                        <span class="comment-author">${comment.author}</span>
+                        <span class="comment-time">${new Date(comment.created_at).toLocaleDateString('zh-CN', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}</span>
+                    </div>
+                </div>
+                <p>${comment.content}</p>
+            `
+            commentsDiv.appendChild(commentEl)
+            
+            // 添加渐入动画，每个评论延迟出现
+            setTimeout(() => {
+                commentEl.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out'
+                commentEl.style.opacity = '1'
+                commentEl.style.transform = 'translateY(0)'
+            }, index * 100)
         })
     }
 
@@ -105,32 +176,81 @@
         e.preventDefault()
         const author = e.target.author.value.trim()
         const content = e.target.content.value.trim()
-
-        if (!author || !content) return
-
-        // 插入评论到数据库（移除created_at的显式赋值）
-        const { error } = await supabase
-            .from('comments')
-            .insert([{
-                post_id: postId,
-                author,
-                content
-            }])
-
-        if (error) {
-            console.error('提交评论失败：', error)
-            alert('评论提交失败，请重试')
+        const submitBtn = document.getElementById('submitComment')
+        
+        if (!author || !content) {
+            alert('请填写完整信息')
             return
         }
 
-        // 重置表单并重新加载评论
-        e.target.reset()
-        loadComments()
+        // 禁用按钮防止重复提交
+        submitBtn.disabled = true
+        submitBtn.innerHTML = '<div class="loading" style="width: 16px; height: 16px;"></div> 提交中...'
+
+        try {
+            // 插入评论到数据库
+            const { error } = await supabase
+                .from('comments')
+                .insert([{
+                    post_id: postId,
+                    author,
+                    content
+                }])
+
+            if (error) {
+                console.error('提交评论失败：', error)
+                alert('评论提交失败，请重试')
+                return
+            }
+
+            // 重置表单
+            e.target.reset()
+            
+            // 显示成功提示
+            const commentsDiv = document.getElementById('comments')
+            const successMsg = document.createElement('div')
+            successMsg.style.cssText = `
+                text-align: center;
+                color: var(--success);
+                padding: 1rem;
+                margin-bottom: 1rem;
+                background-color: rgba(16, 185, 129, 0.1);
+                border-radius: var(--radius-md);
+                font-weight: 500;
+                opacity: 0;
+                transform: translateY(-10px);
+                transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+            `
+            successMsg.textContent = '评论发表成功！'
+            commentsDiv.insertBefore(successMsg, commentsDiv.firstChild)
+            
+            setTimeout(() => {
+                successMsg.style.opacity = '1'
+                successMsg.style.transform = 'translateY(0)'
+            }, 10)
+            
+            // 重新加载评论
+            setTimeout(() => {
+                loadComments()
+            }, 500)
+            
+        } catch (err) {
+            console.error('评论处理出错：', err)
+            alert('处理过程中出现错误，请重试')
+        } finally {
+            // 恢复按钮状态
+            submitBtn.disabled = false
+            submitBtn.innerHTML = '提交评论'
+        }
     })
 
-    // 初始化加载
-    loadPost()
-    loadComments()
+    // 页面加载后执行
+    document.addEventListener('DOMContentLoaded', () => {
+        if (postId) {
+            loadPost()
+            loadComments()
+        }
+    })
 </script>
 </body>
 </html>

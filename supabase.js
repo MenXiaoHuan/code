@@ -1,5 +1,5 @@
-const supabaseUrl = 'https://warlxiwqmdherlsyvwkq.supabase.co'
-const supabaseKey = 'sb_publishable_660Hp569VljMC5vcb3qkyw_XdWpEj_t'
+const supabaseUrl = 'https://grvsrjfomcdwipfxljxb.supabase.co'
+const supabaseKey = 'sb_publishable_YQ7V4jw2Q0ADlArd5Z6JLA_oG4BZ_ve'
 
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
